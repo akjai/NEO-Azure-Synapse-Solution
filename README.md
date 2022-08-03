@@ -1,0 +1,1 @@
+# NEO-Azure-Synapse-Solution
