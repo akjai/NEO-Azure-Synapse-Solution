@@ -1,0 +1,3713 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "ankitprojectsynapse"
+		},
+		"Cosmos DB_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Cosmos DB'"
+		},
+		"ankitprojectsynapse-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ankitprojectsynapse-WorkspaceDefaultSqlServer'"
+		},
+		"ankitprojectsynapse-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ankitprojectdl.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/Bronze to Silver')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Create dim tables and clean data for silver",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Bronze to Silver Dataflow",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"NEOBronzeSource": {},
+									"NEOBronzeSource2": {},
+									"NEOBronzeSource3": {},
+									"AnalyticsSilverSink": {},
+									"DimHazardousSinkSilver": {},
+									"DimOrbitSinkSilver": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Bronze ADLS to DW"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-28T15:55:23Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Bronze to Silver Dataflow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Cosmos Gold to DW')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Insert cosmos data into DW Fact table",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_min",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_min",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_max",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_max",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "relative_velocity",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "relative_velocity",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "miss_distance",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "miss_distance",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "absolute_magnitude",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "absolute_magnitude",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "cosmosgold",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "FactDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Cosmos to DW"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-22T13:32:49Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/cosmosgold')]",
+				"[concat(variables('workspaceId'), '/datasets/FactDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Cosmos Silver to Gold')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Silver cosmos into Gold",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Cosmos Silver to Gold",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"CosmosSource": {},
+									"DimHazardousSource": {},
+									"DimOrbitingBodySource": {},
+									"CosmosGoldSink": {}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "FastIR",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Cosmos to DW"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-25T15:58:44Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Cosmos Silver to Gold')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/FastIR')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Gold to DW')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Bulk insert dimOrbitingBody",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DimOrbitIntDs",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "orbitingBodyDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Bulk insert dimHazardous",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Bulk insert dimOrbitingBody",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DimHazIntDs",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DimHazDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Bulk insert fact table",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Bulk insert dimHazardous",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_min",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_min",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_max",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_max",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "relative_velocity",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "relative_velocity",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "miss_distance",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "miss_distance",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "absolute_magnitude",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "absolute_magnitude",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "FactGoldIntDs",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "FactDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Bronze ADLS to DW"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-21T17:56:57Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DimOrbitIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/orbitingBodyDW')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazDW')]",
+				"[concat(variables('workspaceId'), '/datasets/FactGoldIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/FactDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PipelineV1')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Bronze to Silver",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"origin": {},
+									"source1": {},
+									"source2": {},
+									"dimOrbitingBody": {},
+									"dimHazardous": {},
+									"neosilver": {}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "FastIR",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Silver to Gold",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Bronze to Silver",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow2",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"source2": {},
+									"source3": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "FastIR",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Copy DimHazardous into Gold",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Silver to Gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".csv"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "dimHazardousIntegration",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DelimitedText2",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy DimOrbitingBody into Gold",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Silver to Gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".csv"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "dimOrbitIntegration",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Load facts into DW",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy DimOrbitingBody into Gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Copy DimHazardous into Gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_min",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_min",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "est_diameter_max",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "est_diameter_max",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "relative_velocity",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "relative_velocity",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "miss_distance",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "miss_distance",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "absolute_magnitude",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "absolute_magnitude",
+											"type": "Single",
+											"physicalType": "float"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "FactNeo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "FactDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Load DimHazardous into DW",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Load facts into DW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "hazardous",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "HazardousKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "HazardousKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "dimHazardousIntegration",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DimHazDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Load DimOrbiting Body into DW",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Load facts into DW",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SqlPoolSink",
+								"writeBehavior": "Insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "orbiting_body",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "OrbitingBodyKey",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "OrbitingBodyKey",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "dimOrbitIntegration",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "orbitingBodyDW",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Old pipeline"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-19T15:25:27Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow1')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/FastIR')]",
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow2')]",
+				"[concat(variables('workspaceId'), '/datasets/dimHazardousIntegration')]",
+				"[concat(variables('workspaceId'), '/datasets/DelimitedText2')]",
+				"[concat(variables('workspaceId'), '/datasets/dimOrbitIntegration')]",
+				"[concat(variables('workspaceId'), '/datasets/DelimitedText1')]",
+				"[concat(variables('workspaceId'), '/datasets/FactNeo')]",
+				"[concat(variables('workspaceId'), '/datasets/FactDW')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazDW')]",
+				"[concat(variables('workspaceId'), '/datasets/orbitingBodyDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Silver to Gold')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Create fact table copy dim tables to gold",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Silver to Gold Dataflow",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"NEOSilverSource": {},
+									"DimHazardousSilverSource": {},
+									"DimOrbitSilverSource": {},
+									"FactTableToGold": {},
+									"DimHazardousToGold": {},
+									"DimOrbitToGold": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Bronze ADLS to DW"
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-07-28T15:55:27Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Silver to Gold Dataflow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/CosmosDataSilverIntDs')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cosmos_data.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DelimitedText1')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "gold",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_min",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_max",
+						"type": "String"
+					},
+					{
+						"name": "relative_velocity",
+						"type": "String"
+					},
+					{
+						"name": "miss_distance",
+						"type": "String"
+					},
+					{
+						"name": "absolute_magnitude",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					},
+					{
+						"name": "OrbitingBodyKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DelimitedText2')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "gold",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_min",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_max",
+						"type": "String"
+					},
+					{
+						"name": "relative_velocity",
+						"type": "String"
+					},
+					{
+						"name": "miss_distance",
+						"type": "String"
+					},
+					{
+						"name": "absolute_magnitude",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					},
+					{
+						"name": "OrbitingBodyKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DimHazDW')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "SqlPoolTable",
+				"schema": [
+					{
+						"name": "hazardous",
+						"type": "nvarchar"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "bigint",
+						"precision": 19
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DimHazardous"
+				},
+				"sqlPool": {
+					"referenceName": "mypool",
+					"type": "SqlPoolReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/sqlPools/mypool')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DimHazIntDs')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "DimHazardous.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "hazardous",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DimHazardous')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "DimHazardous.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DimOrbitIntDs')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "DimOrbitBody.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "hazardous",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DimOrbitingBody')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "DimOrbitingBody.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/FactDW')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "SqlPoolTable",
+				"schema": [
+					{
+						"name": "id",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "est_diameter_min",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "est_diameter_max",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "relative_velocity",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "miss_distance",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "absolute_magnitude",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "HazardousKey",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "OrbitingBodyKey",
+						"type": "bigint",
+						"precision": 19
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "factTable"
+				},
+				"sqlPool": {
+					"referenceName": "mypool",
+					"type": "SqlPoolReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/sqlPools/mypool')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/FactGoldIntDs')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Fact.csv",
+						"folderPath": "gold",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_min",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_max",
+						"type": "String"
+					},
+					{
+						"name": "relative_velocity",
+						"type": "String"
+					},
+					{
+						"name": "miss_distance",
+						"type": "String"
+					},
+					{
+						"name": "absolute_magnitude",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					},
+					{
+						"name": "OrbitingBodyKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/FactNeo')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "FactNeo.csv",
+						"folderPath": "gold",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/NeoSilverIntDs')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "neosilver.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "hazardous",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/cosmosgold')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cosmos_gold.csv",
+						"folderPath": "gold",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "hazardous",
+						"type": "String"
+					},
+					{
+						"name": "HazardousKey",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dimHazardousIntegration')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "dimHazardous.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dimNeoSilverIntegration')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "neo_silver.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dimOrbitIntegration')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "dimOrbitingBody.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/neo_bronze')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "neo_v2.csv",
+						"folderPath": "bronze",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_min",
+						"type": "String"
+					},
+					{
+						"name": "est_diameter_max",
+						"type": "String"
+					},
+					{
+						"name": "relative_velocity",
+						"type": "String"
+					},
+					{
+						"name": "miss_distance",
+						"type": "String"
+					},
+					{
+						"name": "orbiting_body",
+						"type": "String"
+					},
+					{
+						"name": "sentry_object",
+						"type": "String"
+					},
+					{
+						"name": "absolute_magnitude",
+						"type": "String"
+					},
+					{
+						"name": "hazardous",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/neo_silver')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "neo_silver.csv",
+						"folderPath": "silver",
+						"fileSystem": "ankitproject"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/orbitingBodyDW')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "SqlPoolTable",
+				"schema": [
+					{
+						"name": "orbiting_body",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OrbitingBodyKey",
+						"type": "bigint",
+						"precision": 19
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DimOrbitingBody"
+				},
+				"sqlPool": {
+					"referenceName": "mypool",
+					"type": "SqlPoolReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/sqlPools/mypool')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Cosmos DB')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "CosmosDb",
+				"typeProperties": {
+					"connectionString": "[parameters('Cosmos DB_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ankitprojectsynapse-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('ankitprojectsynapse-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ankitprojectsynapse-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ankitprojectsynapse-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/FastIR')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "MemoryOptimized",
+							"coreCount": 80,
+							"timeToLive": 10,
+							"cleanup": false
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Bronze to Silver Dataflow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "NEOBronzeSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "NEOBronzeSource2"
+						},
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "NEOBronzeSource3"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+								"type": "LinkedServiceReference"
+							},
+							"name": "AnalyticsSilverSink"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+								"type": "LinkedServiceReference"
+							},
+							"name": "DimHazardousSinkSilver"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+								"type": "LinkedServiceReference"
+							},
+							"name": "DimOrbitSinkSilver"
+						}
+					],
+					"transformations": [
+						{
+							"name": "RemoveSentryColumn"
+						},
+						{
+							"name": "SelectHazardous"
+						},
+						{
+							"name": "SelectOrbitingBody"
+						},
+						{
+							"name": "createHazardousKey"
+						},
+						{
+							"name": "createOrbitingBodyKey"
+						},
+						{
+							"name": "RemoveNonDistinctRows"
+						},
+						{
+							"name": "RemoveNonUniqueRows"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as string,",
+						"          name as string,",
+						"          est_diameter_min as string,",
+						"          est_diameter_max as string,",
+						"          relative_velocity as string,",
+						"          miss_distance as string,",
+						"          orbiting_body as string,",
+						"          sentry_object as string,",
+						"          absolute_magnitude as string,",
+						"          hazardous as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> NEOBronzeSource",
+						"source(output(",
+						"          id as string,",
+						"          name as string,",
+						"          est_diameter_min as string,",
+						"          est_diameter_max as string,",
+						"          relative_velocity as string,",
+						"          miss_distance as string,",
+						"          orbiting_body as string,",
+						"          sentry_object as string,",
+						"          absolute_magnitude as string,",
+						"          hazardous as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> NEOBronzeSource2",
+						"source(output(",
+						"          id as string,",
+						"          name as string,",
+						"          est_diameter_min as string,",
+						"          est_diameter_max as string,",
+						"          relative_velocity as string,",
+						"          miss_distance as string,",
+						"          orbiting_body as string,",
+						"          sentry_object as string,",
+						"          absolute_magnitude as string,",
+						"          hazardous as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> NEOBronzeSource3",
+						"NEOBronzeSource select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          orbiting_body,",
+						"          absolute_magnitude,",
+						"          hazardous",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveSentryColumn",
+						"NEOBronzeSource2 select(mapColumn(",
+						"          hazardous",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectHazardous",
+						"NEOBronzeSource3 select(mapColumn(",
+						"          orbiting_body",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectOrbitingBody",
+						"SelectHazardous keyGenerate(output(HazardousKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> createHazardousKey",
+						"SelectOrbitingBody keyGenerate(output(OrbitingBodyKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> createOrbitingBodyKey",
+						"createHazardousKey filter(HazardousKey < 3) ~> RemoveNonDistinctRows",
+						"createOrbitingBodyKey filter(OrbitingBodyKey < 2) ~> RemoveNonUniqueRows",
+						"RemoveSentryColumn sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'ankitproject',",
+						"     folderPath: 'silver/analytical',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     partitionFileNames:['neosilver.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> AnalyticsSilverSink",
+						"RemoveNonDistinctRows sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'ankitproject',",
+						"     folderPath: 'silver',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: false,",
+						"     partitionFileNames:['DimHazardous.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> DimHazardousSinkSilver",
+						"RemoveNonUniqueRows sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'ankitproject',",
+						"     folderPath: 'silver',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: false,",
+						"     partitionFileNames:['DimOrbitBody.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> DimOrbitSinkSilver"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/neo_bronze')]",
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Cosmos Silver to Gold')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "CosmosDataSilverIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "CosmosSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimHazIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "DimHazardousSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimOrbitIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "DimOrbitingBodySource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "cosmosgold",
+								"type": "DatasetReference"
+							},
+							"name": "CosmosGoldSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "RemoveDummyColumn"
+						},
+						{
+							"name": "JoinDimHazardous"
+						},
+						{
+							"name": "RemoveHazardous"
+						},
+						{
+							"name": "JoinDimOrbitingBody"
+						},
+						{
+							"name": "RemoveOrbitingBody"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          {_c0} as short,",
+						"          id as short,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          absolute_magnitude as double,",
+						"          Hazardous as boolean,",
+						"          orbiting_body as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> CosmosSource",
+						"source(output(",
+						"          hazardous as boolean,",
+						"          HazardousKey as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DimHazardousSource",
+						"source(output(",
+						"          orbiting_body as string,",
+						"          OrbitingBodyKey as long",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DimOrbitingBodySource",
+						"CosmosSource select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          Hazardous,",
+						"          orbiting_body",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveDummyColumn",
+						"RemoveDummyColumn, DimHazardousSource join(RemoveDummyColumn@Hazardous == DimHazardousSource@hazardous,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinDimHazardous",
+						"JoinDimHazardous select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          orbiting_body,",
+						"          HazardousKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveHazardous",
+						"RemoveHazardous, DimOrbitingBodySource join(RemoveHazardous@orbiting_body == DimOrbitingBodySource@orbiting_body,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinDimOrbitingBody",
+						"JoinDimOrbitingBody select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          HazardousKey,",
+						"          OrbitingBodyKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveOrbitingBody",
+						"RemoveOrbitingBody sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          hazardous as string,",
+						"          HazardousKey as string",
+						"     ),",
+						"     partitionFileNames:['cosmos_gold.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> CosmosGoldSink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/CosmosDataSilverIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/DimOrbitIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/cosmosgold')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow1')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "origin"
+						},
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "neo_bronze",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimOrbitingBody",
+								"type": "DatasetReference"
+							},
+							"name": "dimOrbitingBody"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimHazardous",
+								"type": "DatasetReference"
+							},
+							"name": "dimHazardous"
+						},
+						{
+							"dataset": {
+								"referenceName": "neo_silver",
+								"type": "DatasetReference"
+							},
+							"name": "neosilver"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						},
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "surrogateKey2"
+						},
+						{
+							"name": "select3"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          orbiting_body as string,",
+						"          sentry_object as boolean,",
+						"          absolute_magnitude as double,",
+						"          hazardous as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> origin",
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          orbiting_body as string,",
+						"          sentry_object as boolean,",
+						"          absolute_magnitude as double,",
+						"          hazardous as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          orbiting_body as string,",
+						"          sentry_object as boolean,",
+						"          absolute_magnitude as double,",
+						"          hazardous as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source2",
+						"origin select(mapColumn(",
+						"          orbiting_body",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 keyGenerate(output(OrbitingBodyKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> surrogateKey1",
+						"source1 select(mapColumn(",
+						"          hazardous",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 keyGenerate(output(HazardousKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> surrogateKey2",
+						"source2 select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          orbiting_body,",
+						"          absolute_magnitude,",
+						"          hazardous",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"surrogateKey1 sink(allowSchemaDrift: true,",
+						"     validateSchema: true,",
+						"     partitionFileNames:['dimOrbitingBody.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     mapColumn(",
+						"          orbiting_body,",
+						"          OrbitingBodyKey",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> dimOrbitingBody",
+						"surrogateKey2 sink(allowSchemaDrift: true,",
+						"     validateSchema: true,",
+						"     partitionFileNames:['dimHazardous.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     partitionBy('hash', 1)) ~> dimHazardous",
+						"select3 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['neo_silver.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     partitionBy('hash', 1)) ~> neosilver"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/neo_bronze')]",
+				"[concat(variables('workspaceId'), '/datasets/DimOrbitingBody')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazardous')]",
+				"[concat(variables('workspaceId'), '/datasets/neo_silver')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow2')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "dimNeoSilverIntegration",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimHazardousIntegration",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimOrbitIntegration",
+								"type": "DatasetReference"
+							},
+							"name": "source3"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "FactNeo",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "surrogateKey2"
+						},
+						{
+							"name": "lookup2"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          orbiting_body as string,",
+						"          absolute_magnitude as double,",
+						"          hazardous as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> source1",
+						"source(output(",
+						"          hazardous as boolean,",
+						"          HazardousKey as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> source2",
+						"source(output(",
+						"          orbiting_body as string,",
+						"          OrbitingBodyKey as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> source3",
+						"source1 keyGenerate(output(HazardousKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L,",
+						"     partitionBy('hash', 1)) ~> surrogateKey1",
+						"surrogateKey1, source2 lookup(surrogateKey1@HazardousKey == source2@HazardousKey,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> lookup1",
+						"lookup1 select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          HazardousKey = surrogateKey1@HazardousKey,",
+						"          HazardousKey = source2@HazardousKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 keyGenerate(output(OrbitingBodyKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L,",
+						"     partitionBy('hash', 1)) ~> surrogateKey2",
+						"surrogateKey2, source3 lookup(surrogateKey2@OrbitingBodyKey == source3@OrbitingBodyKey,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> lookup2",
+						"lookup2 select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          HazardousKey,",
+						"          OrbitingBodyKey = surrogateKey2@OrbitingBodyKey,",
+						"          OrbitingBodyKey = source3@OrbitingBodyKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['FactNeo.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/dimNeoSilverIntegration')]",
+				"[concat(variables('workspaceId'), '/datasets/dimHazardousIntegration')]",
+				"[concat(variables('workspaceId'), '/datasets/dimOrbitIntegration')]",
+				"[concat(variables('workspaceId'), '/datasets/FactNeo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Silver to Gold Dataflow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "NeoSilverIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "NEOSilverSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimHazIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "DimHazardousSilverSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimOrbitIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "DimOrbitSilverSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "FactGoldIntDs",
+								"type": "DatasetReference"
+							},
+							"name": "FactTableToGold"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+								"type": "LinkedServiceReference"
+							},
+							"name": "DimHazardousToGold"
+						},
+						{
+							"linkedService": {
+								"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+								"type": "LinkedServiceReference"
+							},
+							"name": "DimOrbitToGold"
+						}
+					],
+					"transformations": [
+						{
+							"name": "JoinDimHazardous"
+						},
+						{
+							"name": "RemoveHazardousCol"
+						},
+						{
+							"name": "JoinOrbitingBody"
+						},
+						{
+							"name": "RemoveOrbitingBodyCol"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          est_diameter_min as double,",
+						"          est_diameter_max as double,",
+						"          relative_velocity as double,",
+						"          miss_distance as double,",
+						"          orbiting_body as string,",
+						"          absolute_magnitude as double,",
+						"          hazardous as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> NEOSilverSource",
+						"source(output(",
+						"          hazardous as boolean,",
+						"          HazardousKey as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DimHazardousSilverSource",
+						"source(output(",
+						"          orbiting_body as string,",
+						"          OrbitingBodyKey as long",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DimOrbitSilverSource",
+						"NEOSilverSource, DimHazardousSilverSource join(NEOSilverSource@hazardous == DimHazardousSilverSource@hazardous,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinDimHazardous",
+						"JoinDimHazardous select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          orbiting_body,",
+						"          absolute_magnitude,",
+						"          hazardous = NEOSilverSource@hazardous,",
+						"          HazardousKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveHazardousCol",
+						"RemoveHazardousCol, DimOrbitSilverSource join(RemoveHazardousCol@orbiting_body == DimOrbitSilverSource@orbiting_body,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinOrbitingBody",
+						"JoinOrbitingBody select(mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          HazardousKey,",
+						"          OrbitingBodyKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> RemoveOrbitingBodyCol",
+						"RemoveOrbitingBodyCol sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as string,",
+						"          name as string,",
+						"          est_diameter_min as string,",
+						"          est_diameter_max as string,",
+						"          relative_velocity as string,",
+						"          miss_distance as string,",
+						"          absolute_magnitude as string,",
+						"          HazardousKey as string,",
+						"          OrbitingBodyKey as string",
+						"     ),",
+						"     partitionFileNames:['Fact.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          name,",
+						"          est_diameter_min,",
+						"          est_diameter_max,",
+						"          relative_velocity,",
+						"          miss_distance,",
+						"          absolute_magnitude,",
+						"          HazardousKey,",
+						"          OrbitingBodyKey",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> FactTableToGold",
+						"DimHazardousSilverSource sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'ankitproject',",
+						"     folderPath: 'gold',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     partitionFileNames:['DimHazard.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> DimHazardousToGold",
+						"DimOrbitSilverSource sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'ankitproject',",
+						"     folderPath: 'gold',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     partitionFileNames:['DimOrbit.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> DimOrbitToGold"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/NeoSilverIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/DimHazIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/DimOrbitIntDs')]",
+				"[concat(variables('workspaceId'), '/datasets/FactGoldIntDs')]",
+				"[concat(variables('workspaceId'), '/linkedServices/ankitprojectsynapse-WorkspaceDefaultStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Count Per Hazardous Level')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT h.[hazardous]\n,COUNT(*) AS [Count]\n FROM [dbo].[factTable] f\n JOIN [dbo].[DimHazardous] h ON f.[HazardousKey] = h.[HazardousKey]\n GROUP BY h.[Hazardous]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "mypool",
+						"poolName": "mypool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Select Cosmos Data in DW')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT [id]\n,[name]\n,[est_diameter_min]\n,[est_diameter_max]\n,[relative_velocity]\n,[miss_distance]\n,[absolute_magnitude]\n,h.[hazardous]\n FROM [dbo].[factTable] f\n JOIN [dbo].[DimHazardous] h ON f.[HazardousKey] = h.[HazardousKey]\n WHERE f.[id] < 4",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "mypool",
+						"poolName": "mypool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Select Top 100 DimHazardous')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [hazardous]\n,[HazardousKey]\n FROM [dbo].[DimHazardous]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "mypool",
+						"poolName": "mypool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Select Top 100 DimOrbitingBody')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [orbiting_body]\n,[OrbitingBodyKey]\n FROM [dbo].[DimOrbitingBody]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "mypool",
+						"poolName": "mypool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Select Top 100 FactTable')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [id]\n,[name]\n,[est_diameter_min]\n,[est_diameter_max]\n,[relative_velocity]\n,[miss_distance]\n,[absolute_magnitude]\n,[HazardousKey]\n,[OrbitingBodyKey]\n FROM [dbo].[factTable]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "mypool",
+						"poolName": "mypool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Cosmos Notebook')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "mysparkpool",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 2,
+					"runAsWorkspaceSystemIdentity": false,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "a3f39f1a-2746-4c77-b366-361482419a9b"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1e555350-e8a6-4258-b56f-3005e3c59e5b/resourceGroups/ankitproject/providers/Microsoft.Synapse/workspaces/ankitprojectsynapse/bigDataPools/mysparkpool",
+						"name": "mysparkpool",
+						"type": "Spark",
+						"endpoint": "https://ankitprojectsynapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mysparkpool",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net",
+							"authHeader": null
+						},
+						"sparkVersion": "3.2",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"collapsed": false
+						},
+						"source": [
+							"import json\n",
+							"import os\n",
+							"import ssl\n",
+							"import pandas as pd\n",
+							"\n",
+							"# Read from Cosmos DB analytical store into a Spark DataFrame \n",
+							"# To select a preferred list of regions in a multi-region Cosmos DB account, add .option(\"spark.cosmos.preferredRegions\", \"<Region1>,<Region2>\")\n",
+							"spark_df = spark.read\\\n",
+							"    .format(\"cosmos.olap\")\\\n",
+							"    .option(\"spark.synapse.linkedService\", \"Cosmos DB\")\\\n",
+							"    .option(\"spark.cosmos.container\", \"neo\")\\\n",
+							"    .load()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 8
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Convert spark df to pandas df, drop cosmos columns, and adjust JSON format to match Azure ML input\r\n",
+							"df = spark_df.toPandas()\r\n",
+							"df = df.drop(columns=['_rid', '_ts', '_etag'])\r\n",
+							"\r\n",
+							"df = df.tail(3)\r\n",
+							"\r\n",
+							"df[\"id\"] = pd.to_numeric(df[\"id\"])\r\n",
+							"\r\n",
+							"dict_data = df.to_dict('records')\r\n",
+							"\r\n",
+							"nest_data = {}\r\n",
+							"nest_data[\"data\"] = dict_data\r\n",
+							"\r\n",
+							"nest_inputs = {}\r\n",
+							"nest_inputs[\"Inputs\"] = nest_data\r\n",
+							"\r\n",
+							"df"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 26
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Azure ML web service script\r\n",
+							"import requests\r\n",
+							"import urllib\r\n",
+							"\r\n",
+							"data = nest_inputs\r\n",
+							"\r\n",
+							"url = 'http://7acc4dcc-b51a-4abb-afbf-eda77ca2fecc.centralus.azurecontainer.io/score'\r\n",
+							"\r\n",
+							"headers = {'Content-Type':'application/json'}\r\n",
+							"\r\n",
+							"try:\r\n",
+							"    resp = requests.post(url, json.dumps(data), headers=headers)\r\n",
+							"    pred = json.loads(resp.text)\r\n",
+							"    pred = pd.DataFrame(pred)\r\n",
+							"    pred = pred['Results'].tolist()\r\n",
+							"    print(pred)\r\n",
+							"\r\n",
+							"except urllib.error.HTTPError as error:\r\n",
+							"    print(\"The request failed with status code: \" + str(error.code))\r\n",
+							"\r\n",
+							"    # Print the headers - they include the request ID and the timestamp, which are useful for debugging the failure\r\n",
+							"    print(error.info())\r\n",
+							"    print(error.read().decode(\"utf8\", 'ignore'))"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 27
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Join results to inputted dataset and export as CSV to Data Lake \r\n",
+							"df['Hazardous'] = pred\r\n",
+							"size = df.shape[0]\r\n",
+							"\r\n",
+							"orbiting_body = []\r\n",
+							"\r\n",
+							"count = 0\r\n",
+							"while(count < size):\r\n",
+							"    orbiting_body.append('Earth')\r\n",
+							"    count += 1\r\n",
+							"\r\n",
+							"df['orbiting_body'] = orbiting_body\r\n",
+							"\r\n",
+							"df.to_csv(\"abfss://ankitproject@ankitprojectdl.dfs.core.windows.net/silver/cosmos_data.csv\")"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 21
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Visualizations')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "mysparkpool",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 2,
+					"runAsWorkspaceSystemIdentity": false,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "aa94f73b-8199-4b4d-8a0b-247164651b4e"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1e555350-e8a6-4258-b56f-3005e3c59e5b/resourceGroups/ankitproject/providers/Microsoft.Synapse/workspaces/ankitprojectsynapse/bigDataPools/mysparkpool",
+						"name": "mysparkpool",
+						"type": "Spark",
+						"endpoint": "https://ankitprojectsynapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mysparkpool",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net",
+							"authHeader": null
+						},
+						"sparkVersion": "3.2",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"microsoft": {
+								"language": "python"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%pyspark\r\n",
+							"import pandas as pd\r\n",
+							"df = pd.read_csv('abfss://ankitproject@ankitprojectdl.dfs.core.windows.net/silver/analytical/neosilver.csv')\r\n",
+							"\r\n",
+							"df"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 4
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"import matplotlib.pyplot as plt\r\n",
+							"\r\n",
+							"# plot distribution of Hazardous\r\n",
+							"# https://www.tutorialspoint.com/frequency-plot-in-python-pandas-dataframe-using-matplotlib \r\n",
+							"fig, ax = plt.subplots()\r\n",
+							"c = [\"royalblue\", \"sandybrown\"]\r\n",
+							"\r\n",
+							"df['hazardous'].value_counts().plot(ax=ax, kind='bar', xlabel='hazardous', ylabel='frequency', color = c)\r\n",
+							"\r\n",
+							"plt.show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 5
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"import seaborn as sns \r\n",
+							"\r\n",
+							"# https://seaborn.pydata.org/generated/seaborn.relplot.html#seaborn.relplot\r\n",
+							"\r\n",
+							"df['avg_diameter'] = df[['est_diameter_min', 'est_diameter_max']].mean(axis=1)\r\n",
+							"\r\n",
+							"sns.relplot(x=\"relative_velocity\", y=\"miss_distance\", hue=\"hazardous\", size=\"avg_diameter\", data=df)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 6
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+							"#ax.set(ylim=(0, 3.05))\r\n",
+							"sns.violinplot(x=\"hazardous\", y=\"absolute_magnitude\", data=df)\r\n",
+							""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 7
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+							"sns.violinplot(x=\"hazardous\", y=\"miss_distance\", data=df)\r\n",
+							""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 8
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+							"ax.set(ylim=(-0.1, 3.05))\r\n",
+							"sns.violinplot(x=\"hazardous\", y=\"est_diameter_min\", data=df, ax=ax)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": 9
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/mysparkpool')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"autoPause": {
+					"enabled": true,
+					"delayInMinutes": 15
+				},
+				"autoScale": {
+					"enabled": true,
+					"maxNodeCount": 10,
+					"minNodeCount": 3
+				},
+				"nodeCount": 10,
+				"nodeSize": "Medium",
+				"nodeSizeFamily": "MemoryOptimized",
+				"sparkVersion": "3.2",
+				"isComputeIsolationEnabled": false,
+				"sessionLevelPackagesEnabled": false,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus2"
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/mypool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus2"
+		}
+	]
+}
