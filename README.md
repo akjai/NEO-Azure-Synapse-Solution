@@ -1,5 +1,8 @@
 # NEO-Azure-Synapse-Solution
 
+This is an end-to-end Data & AI solution in Azure that predicts the threat level of asteroids near Earth. Services used: Azure Cosmos DB, Azure Data Lake Gen2, Azure Synapse Analytics, Azure Machine Learning.
+
+
 Original Dataset: https://www.kaggle.com/datasets/sameepvani/nasa-nearest-earth-objects 
 
 
