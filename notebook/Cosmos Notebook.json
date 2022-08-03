@@ -1,0 +1,188 @@
+{
+	"name": "Cosmos Notebook",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "mysparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "a3f39f1a-2746-4c77-b366-361482419a9b"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1e555350-e8a6-4258-b56f-3005e3c59e5b/resourceGroups/ankitproject/providers/Microsoft.Synapse/workspaces/ankitprojectsynapse/bigDataPools/mysparkpool",
+				"name": "mysparkpool",
+				"type": "Spark",
+				"endpoint": "https://ankitprojectsynapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mysparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"import json\n",
+					"import os\n",
+					"import ssl\n",
+					"import pandas as pd\n",
+					"\n",
+					"# Read from Cosmos DB analytical store into a Spark DataFrame \n",
+					"# To select a preferred list of regions in a multi-region Cosmos DB account, add .option(\"spark.cosmos.preferredRegions\", \"<Region1>,<Region2>\")\n",
+					"spark_df = spark.read\\\n",
+					"    .format(\"cosmos.olap\")\\\n",
+					"    .option(\"spark.synapse.linkedService\", \"Cosmos DB\")\\\n",
+					"    .option(\"spark.cosmos.container\", \"neo\")\\\n",
+					"    .load()"
+				],
+				"attachments": null,
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Convert spark df to pandas df, drop cosmos columns, and adjust JSON format to match Azure ML input\r\n",
+					"df = spark_df.toPandas()\r\n",
+					"df = df.drop(columns=['_rid', '_ts', '_etag'])\r\n",
+					"\r\n",
+					"df = df.tail(3)\r\n",
+					"\r\n",
+					"df[\"id\"] = pd.to_numeric(df[\"id\"])\r\n",
+					"\r\n",
+					"dict_data = df.to_dict('records')\r\n",
+					"\r\n",
+					"nest_data = {}\r\n",
+					"nest_data[\"data\"] = dict_data\r\n",
+					"\r\n",
+					"nest_inputs = {}\r\n",
+					"nest_inputs[\"Inputs\"] = nest_data\r\n",
+					"\r\n",
+					"df"
+				],
+				"attachments": null,
+				"execution_count": 26
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Azure ML web service script\r\n",
+					"import requests\r\n",
+					"import urllib\r\n",
+					"\r\n",
+					"data = nest_inputs\r\n",
+					"\r\n",
+					"url = 'http://7acc4dcc-b51a-4abb-afbf-eda77ca2fecc.centralus.azurecontainer.io/score'\r\n",
+					"\r\n",
+					"headers = {'Content-Type':'application/json'}\r\n",
+					"\r\n",
+					"try:\r\n",
+					"    resp = requests.post(url, json.dumps(data), headers=headers)\r\n",
+					"    pred = json.loads(resp.text)\r\n",
+					"    pred = pd.DataFrame(pred)\r\n",
+					"    pred = pred['Results'].tolist()\r\n",
+					"    print(pred)\r\n",
+					"\r\n",
+					"except urllib.error.HTTPError as error:\r\n",
+					"    print(\"The request failed with status code: \" + str(error.code))\r\n",
+					"\r\n",
+					"    # Print the headers - they include the request ID and the timestamp, which are useful for debugging the failure\r\n",
+					"    print(error.info())\r\n",
+					"    print(error.read().decode(\"utf8\", 'ignore'))"
+				],
+				"attachments": null,
+				"execution_count": 27
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Join results to inputted dataset and export as CSV to Data Lake \r\n",
+					"df['Hazardous'] = pred\r\n",
+					"size = df.shape[0]\r\n",
+					"\r\n",
+					"orbiting_body = []\r\n",
+					"\r\n",
+					"count = 0\r\n",
+					"while(count < size):\r\n",
+					"    orbiting_body.append('Earth')\r\n",
+					"    count += 1\r\n",
+					"\r\n",
+					"df['orbiting_body'] = orbiting_body\r\n",
+					"\r\n",
+					"df.to_csv(\"abfss://ankitproject@ankitprojectdl.dfs.core.windows.net/silver/cosmos_data.csv\")"
+				],
+				"attachments": null,
+				"execution_count": 21
+			}
+		]
+	}
+}

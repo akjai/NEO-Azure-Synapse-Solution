@@ -1,0 +1,62 @@
+{
+	"name": "FactDW",
+	"properties": {
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [
+			{
+				"name": "id",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "est_diameter_min",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "est_diameter_max",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "relative_velocity",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "miss_distance",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "absolute_magnitude",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "HazardousKey",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "OrbitingBodyKey",
+				"type": "bigint",
+				"precision": 19
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "factTable"
+		},
+		"sqlPool": {
+			"referenceName": "mypool",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

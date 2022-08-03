@@ -1,0 +1,27 @@
+{
+	"name": "orbitingBodyDW",
+	"properties": {
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [
+			{
+				"name": "orbiting_body",
+				"type": "nvarchar"
+			},
+			{
+				"name": "OrbitingBodyKey",
+				"type": "bigint",
+				"precision": 19
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "DimOrbitingBody"
+		},
+		"sqlPool": {
+			"referenceName": "mypool",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

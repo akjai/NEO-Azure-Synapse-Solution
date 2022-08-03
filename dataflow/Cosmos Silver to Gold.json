@@ -1,0 +1,150 @@
+{
+	"name": "Cosmos Silver to Gold",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "CosmosDataSilverIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "CosmosSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimHazIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "DimHazardousSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimOrbitIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "DimOrbitingBodySource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "cosmosgold",
+						"type": "DatasetReference"
+					},
+					"name": "CosmosGoldSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "RemoveDummyColumn"
+				},
+				{
+					"name": "JoinDimHazardous"
+				},
+				{
+					"name": "RemoveHazardous"
+				},
+				{
+					"name": "JoinDimOrbitingBody"
+				},
+				{
+					"name": "RemoveOrbitingBody"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          {_c0} as short,",
+				"          id as short,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          absolute_magnitude as double,",
+				"          Hazardous as boolean,",
+				"          orbiting_body as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CosmosSource",
+				"source(output(",
+				"          hazardous as boolean,",
+				"          HazardousKey as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DimHazardousSource",
+				"source(output(",
+				"          orbiting_body as string,",
+				"          OrbitingBodyKey as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DimOrbitingBodySource",
+				"CosmosSource select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          Hazardous,",
+				"          orbiting_body",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveDummyColumn",
+				"RemoveDummyColumn, DimHazardousSource join(RemoveDummyColumn@Hazardous == DimHazardousSource@hazardous,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinDimHazardous",
+				"JoinDimHazardous select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          orbiting_body,",
+				"          HazardousKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveHazardous",
+				"RemoveHazardous, DimOrbitingBodySource join(RemoveHazardous@orbiting_body == DimOrbitingBodySource@orbiting_body,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinDimOrbitingBody",
+				"JoinDimOrbitingBody select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          HazardousKey,",
+				"          OrbitingBodyKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveOrbitingBody",
+				"RemoveOrbitingBody sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          hazardous as string,",
+				"          HazardousKey as string",
+				"     ),",
+				"     partitionFileNames:['cosmos_gold.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> CosmosGoldSink"
+			]
+		}
+	}
+}

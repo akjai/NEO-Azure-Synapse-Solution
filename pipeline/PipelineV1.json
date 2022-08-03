@@ -1,0 +1,595 @@
+{
+	"name": "PipelineV1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Bronze to Silver",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow1",
+						"type": "DataFlowReference"
+					},
+					"integrationRuntime": {
+						"referenceName": "FastIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Silver to Gold",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Bronze to Silver",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow2",
+						"type": "DataFlowReference"
+					},
+					"integrationRuntime": {
+						"referenceName": "FastIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Copy DimHazardous into Gold",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Silver to Gold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "dimHazardousIntegration",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DelimitedText2",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Copy DimOrbitingBody into Gold",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Silver to Gold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".csv"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "dimOrbitIntegration",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Load facts into DW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy DimOrbitingBody into Gold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Copy DimHazardous into Gold",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "est_diameter_min",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "est_diameter_min",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "est_diameter_max",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "est_diameter_max",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "relative_velocity",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "relative_velocity",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "miss_distance",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "miss_distance",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "absolute_magnitude",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "absolute_magnitude",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HazardousKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OrbitingBodyKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "FactNeo",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "FactDW",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Load DimHazardous into DW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load facts into DW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HazardousKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "dimHazardousIntegration",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DimHazDW",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Load DimOrbiting Body into DW",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Load facts into DW",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OrbitingBodyKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "dimOrbitIntegration",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "orbitingBodyDW",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Old pipeline"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-07-19T15:25:27Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

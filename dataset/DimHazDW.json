@@ -1,0 +1,27 @@
+{
+	"name": "DimHazDW",
+	"properties": {
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [
+			{
+				"name": "hazardous",
+				"type": "nvarchar"
+			},
+			{
+				"name": "HazardousKey",
+				"type": "bigint",
+				"precision": 19
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "DimHazardous"
+		},
+		"sqlPool": {
+			"referenceName": "mypool",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

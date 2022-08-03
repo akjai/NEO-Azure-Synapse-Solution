@@ -1,0 +1,17 @@
+{
+	"name": "Select Top 100 DimOrbitingBody",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [orbiting_body]\n,[OrbitingBodyKey]\n FROM [dbo].[DimOrbitingBody]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "mypool",
+				"poolName": "mypool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

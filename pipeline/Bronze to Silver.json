@@ -1,0 +1,37 @@
+{
+	"name": "Bronze to Silver",
+	"properties": {
+		"activities": [
+			{
+				"name": "Create dim tables and clean data for silver",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Bronze to Silver Dataflow",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Bronze ADLS to DW"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-07-28T15:55:23Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

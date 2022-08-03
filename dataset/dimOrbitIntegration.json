@@ -1,0 +1,25 @@
+{
+	"name": "dimOrbitIntegration",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "dimOrbitingBody.csv",
+				"folderPath": "silver",
+				"fileSystem": "ankitproject"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

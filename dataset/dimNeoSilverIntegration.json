@@ -1,0 +1,25 @@
+{
+	"name": "dimNeoSilverIntegration",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "neo_silver.csv",
+				"folderPath": "silver",
+				"fileSystem": "ankitproject"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

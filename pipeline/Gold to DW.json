@@ -1,0 +1,345 @@
+{
+	"name": "Gold to DW",
+	"properties": {
+		"activities": [
+			{
+				"name": "Bulk insert dimOrbitingBody",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "orbiting_body",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OrbitingBodyKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DimOrbitIntDs",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "orbitingBodyDW",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Bulk insert dimHazardous",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Bulk insert dimOrbitingBody",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "hazardous",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HazardousKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DimHazIntDs",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DimHazDW",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Bulk insert fact table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Bulk insert dimHazardous",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"writeBehavior": "Insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "nvarchar"
+								}
+							},
+							{
+								"source": {
+									"name": "est_diameter_min",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "est_diameter_min",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "est_diameter_max",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "est_diameter_max",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "relative_velocity",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "relative_velocity",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "miss_distance",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "miss_distance",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "absolute_magnitude",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "absolute_magnitude",
+									"type": "Single",
+									"physicalType": "float"
+								}
+							},
+							{
+								"source": {
+									"name": "HazardousKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "HazardousKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							},
+							{
+								"source": {
+									"name": "OrbitingBodyKey",
+									"type": "String",
+									"physicalType": "String"
+								},
+								"sink": {
+									"name": "OrbitingBodyKey",
+									"type": "Int64",
+									"physicalType": "bigint"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "FactGoldIntDs",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "FactDW",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Bronze ADLS to DW"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-07-21T17:56:57Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

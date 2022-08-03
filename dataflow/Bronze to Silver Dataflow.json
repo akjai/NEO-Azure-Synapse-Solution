@@ -1,0 +1,203 @@
+{
+	"name": "Bronze to Silver Dataflow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "NEOBronzeSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "NEOBronzeSource2"
+				},
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "NEOBronzeSource3"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "AnalyticsSilverSink"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimHazardousSinkSilver"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimOrbitSinkSilver"
+				}
+			],
+			"transformations": [
+				{
+					"name": "RemoveSentryColumn"
+				},
+				{
+					"name": "SelectHazardous"
+				},
+				{
+					"name": "SelectOrbitingBody"
+				},
+				{
+					"name": "createHazardousKey"
+				},
+				{
+					"name": "createOrbitingBodyKey"
+				},
+				{
+					"name": "RemoveNonDistinctRows"
+				},
+				{
+					"name": "RemoveNonUniqueRows"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as string,",
+				"          name as string,",
+				"          est_diameter_min as string,",
+				"          est_diameter_max as string,",
+				"          relative_velocity as string,",
+				"          miss_distance as string,",
+				"          orbiting_body as string,",
+				"          sentry_object as string,",
+				"          absolute_magnitude as string,",
+				"          hazardous as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> NEOBronzeSource",
+				"source(output(",
+				"          id as string,",
+				"          name as string,",
+				"          est_diameter_min as string,",
+				"          est_diameter_max as string,",
+				"          relative_velocity as string,",
+				"          miss_distance as string,",
+				"          orbiting_body as string,",
+				"          sentry_object as string,",
+				"          absolute_magnitude as string,",
+				"          hazardous as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> NEOBronzeSource2",
+				"source(output(",
+				"          id as string,",
+				"          name as string,",
+				"          est_diameter_min as string,",
+				"          est_diameter_max as string,",
+				"          relative_velocity as string,",
+				"          miss_distance as string,",
+				"          orbiting_body as string,",
+				"          sentry_object as string,",
+				"          absolute_magnitude as string,",
+				"          hazardous as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> NEOBronzeSource3",
+				"NEOBronzeSource select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          orbiting_body,",
+				"          absolute_magnitude,",
+				"          hazardous",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveSentryColumn",
+				"NEOBronzeSource2 select(mapColumn(",
+				"          hazardous",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectHazardous",
+				"NEOBronzeSource3 select(mapColumn(",
+				"          orbiting_body",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectOrbitingBody",
+				"SelectHazardous keyGenerate(output(HazardousKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> createHazardousKey",
+				"SelectOrbitingBody keyGenerate(output(OrbitingBodyKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> createOrbitingBodyKey",
+				"createHazardousKey filter(HazardousKey < 3) ~> RemoveNonDistinctRows",
+				"createOrbitingBodyKey filter(OrbitingBodyKey < 2) ~> RemoveNonUniqueRows",
+				"RemoveSentryColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'ankitproject',",
+				"     folderPath: 'silver/analytical',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     partitionFileNames:['neosilver.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> AnalyticsSilverSink",
+				"RemoveNonDistinctRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'ankitproject',",
+				"     folderPath: 'silver',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: false,",
+				"     partitionFileNames:['DimHazardous.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> DimHazardousSinkSilver",
+				"RemoveNonUniqueRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'ankitproject',",
+				"     folderPath: 'silver',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: false,",
+				"     partitionFileNames:['DimOrbitBody.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> DimOrbitSinkSilver"
+			]
+		}
+	}
+}

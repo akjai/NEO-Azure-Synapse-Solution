@@ -1,0 +1,193 @@
+{
+	"name": "Visualizations",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "mysparkpool",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "aa94f73b-8199-4b4d-8a0b-247164651b4e"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1e555350-e8a6-4258-b56f-3005e3c59e5b/resourceGroups/ankitproject/providers/Microsoft.Synapse/workspaces/ankitprojectsynapse/bigDataPools/mysparkpool",
+				"name": "mysparkpool",
+				"type": "Spark",
+				"endpoint": "https://ankitprojectsynapse.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/mysparkpool",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"microsoft": {
+						"language": "python"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%pyspark\r\n",
+					"import pandas as pd\r\n",
+					"df = pd.read_csv('abfss://ankitproject@ankitprojectdl.dfs.core.windows.net/silver/analytical/neosilver.csv')\r\n",
+					"\r\n",
+					"df"
+				],
+				"attachments": null,
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"import matplotlib.pyplot as plt\r\n",
+					"\r\n",
+					"# plot distribution of Hazardous\r\n",
+					"# https://www.tutorialspoint.com/frequency-plot-in-python-pandas-dataframe-using-matplotlib \r\n",
+					"fig, ax = plt.subplots()\r\n",
+					"c = [\"royalblue\", \"sandybrown\"]\r\n",
+					"\r\n",
+					"df['hazardous'].value_counts().plot(ax=ax, kind='bar', xlabel='hazardous', ylabel='frequency', color = c)\r\n",
+					"\r\n",
+					"plt.show()"
+				],
+				"attachments": null,
+				"execution_count": 5
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"import seaborn as sns \r\n",
+					"\r\n",
+					"# https://seaborn.pydata.org/generated/seaborn.relplot.html#seaborn.relplot\r\n",
+					"\r\n",
+					"df['avg_diameter'] = df[['est_diameter_min', 'est_diameter_max']].mean(axis=1)\r\n",
+					"\r\n",
+					"sns.relplot(x=\"relative_velocity\", y=\"miss_distance\", hue=\"hazardous\", size=\"avg_diameter\", data=df)"
+				],
+				"attachments": null,
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+					"#ax.set(ylim=(0, 3.05))\r\n",
+					"sns.violinplot(x=\"hazardous\", y=\"absolute_magnitude\", data=df)\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 7
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+					"sns.violinplot(x=\"hazardous\", y=\"miss_distance\", data=df)\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"f, ax = plt.subplots(figsize=(11, 6))\r\n",
+					"ax.set(ylim=(-0.1, 3.05))\r\n",
+					"sns.violinplot(x=\"hazardous\", y=\"est_diameter_min\", data=df, ax=ax)"
+				],
+				"attachments": null,
+				"execution_count": 9
+			}
+		]
+	}
+}

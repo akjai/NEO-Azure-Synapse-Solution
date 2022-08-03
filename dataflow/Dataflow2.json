@@ -1,0 +1,145 @@
+{
+	"name": "Dataflow2",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "dimNeoSilverIntegration",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "dimHazardousIntegration",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				},
+				{
+					"dataset": {
+						"referenceName": "dimOrbitIntegration",
+						"type": "DatasetReference"
+					},
+					"name": "source3"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "FactNeo",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "surrogateKey2"
+				},
+				{
+					"name": "lookup2"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          orbiting_body as string,",
+				"          absolute_magnitude as double,",
+				"          hazardous as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> source1",
+				"source(output(",
+				"          hazardous as boolean,",
+				"          HazardousKey as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> source2",
+				"source(output(",
+				"          orbiting_body as string,",
+				"          OrbitingBodyKey as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> source3",
+				"source1 keyGenerate(output(HazardousKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L,",
+				"     partitionBy('hash', 1)) ~> surrogateKey1",
+				"surrogateKey1, source2 lookup(surrogateKey1@HazardousKey == source2@HazardousKey,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          HazardousKey = surrogateKey1@HazardousKey,",
+				"          HazardousKey = source2@HazardousKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 keyGenerate(output(OrbitingBodyKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L,",
+				"     partitionBy('hash', 1)) ~> surrogateKey2",
+				"surrogateKey2, source3 lookup(surrogateKey2@OrbitingBodyKey == source3@OrbitingBodyKey,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup2",
+				"lookup2 select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          HazardousKey,",
+				"          OrbitingBodyKey = surrogateKey2@OrbitingBodyKey,",
+				"          OrbitingBodyKey = source3@OrbitingBodyKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['FactNeo.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

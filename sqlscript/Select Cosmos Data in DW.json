@@ -1,0 +1,17 @@
+{
+	"name": "Select Cosmos Data in DW",
+	"properties": {
+		"content": {
+			"query": "SELECT [id]\n,[name]\n,[est_diameter_min]\n,[est_diameter_max]\n,[relative_velocity]\n,[miss_distance]\n,[absolute_magnitude]\n,h.[hazardous]\n FROM [dbo].[factTable] f\n JOIN [dbo].[DimHazardous] h ON f.[HazardousKey] = h.[HazardousKey]\n WHERE f.[id] < 4",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "mypool",
+				"poolName": "mypool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

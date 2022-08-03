@@ -1,0 +1,17 @@
+{
+	"name": "Select Top 100 FactTable",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [id]\n,[name]\n,[est_diameter_min]\n,[est_diameter_max]\n,[relative_velocity]\n,[miss_distance]\n,[absolute_magnitude]\n,[HazardousKey]\n,[OrbitingBodyKey]\n FROM [dbo].[factTable]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "mypool",
+				"poolName": "mypool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

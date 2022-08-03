@@ -1,0 +1,37 @@
+{
+	"name": "Silver to Gold",
+	"properties": {
+		"activities": [
+			{
+				"name": "Create fact table copy dim tables to gold",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Silver to Gold Dataflow",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Bronze ADLS to DW"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-07-28T15:55:27Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,62 @@
+{
+	"name": "FactGoldIntDs",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "Fact.csv",
+				"folderPath": "gold",
+				"fileSystem": "ankitproject"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "id",
+				"type": "String"
+			},
+			{
+				"name": "name",
+				"type": "String"
+			},
+			{
+				"name": "est_diameter_min",
+				"type": "String"
+			},
+			{
+				"name": "est_diameter_max",
+				"type": "String"
+			},
+			{
+				"name": "relative_velocity",
+				"type": "String"
+			},
+			{
+				"name": "miss_distance",
+				"type": "String"
+			},
+			{
+				"name": "absolute_magnitude",
+				"type": "String"
+			},
+			{
+				"name": "HazardousKey",
+				"type": "String"
+			},
+			{
+				"name": "OrbitingBodyKey",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

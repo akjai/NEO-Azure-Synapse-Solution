@@ -1,0 +1,37 @@
+{
+	"name": "Cosmos Silver to Gold",
+	"properties": {
+		"activities": [
+			{
+				"name": "Silver cosmos into Gold",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Cosmos Silver to Gold",
+						"type": "DataFlowReference"
+					},
+					"integrationRuntime": {
+						"referenceName": "FastIR",
+						"type": "IntegrationRuntimeReference"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Cosmos to DW"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-07-25T15:58:44Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,198 @@
+{
+	"name": "Silver to Gold Dataflow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "NeoSilverIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "NEOSilverSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimHazIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "DimHazardousSilverSource"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimOrbitIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "DimOrbitSilverSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "FactGoldIntDs",
+						"type": "DatasetReference"
+					},
+					"name": "FactTableToGold"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimHazardousToGold"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ankitprojectsynapse-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimOrbitToGold"
+				}
+			],
+			"transformations": [
+				{
+					"name": "JoinDimHazardous"
+				},
+				{
+					"name": "RemoveHazardousCol"
+				},
+				{
+					"name": "JoinOrbitingBody"
+				},
+				{
+					"name": "RemoveOrbitingBodyCol"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          orbiting_body as string,",
+				"          absolute_magnitude as double,",
+				"          hazardous as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> NEOSilverSource",
+				"source(output(",
+				"          hazardous as boolean,",
+				"          HazardousKey as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DimHazardousSilverSource",
+				"source(output(",
+				"          orbiting_body as string,",
+				"          OrbitingBodyKey as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DimOrbitSilverSource",
+				"NEOSilverSource, DimHazardousSilverSource join(NEOSilverSource@hazardous == DimHazardousSilverSource@hazardous,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinDimHazardous",
+				"JoinDimHazardous select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          orbiting_body,",
+				"          absolute_magnitude,",
+				"          hazardous = NEOSilverSource@hazardous,",
+				"          HazardousKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveHazardousCol",
+				"RemoveHazardousCol, DimOrbitSilverSource join(RemoveHazardousCol@orbiting_body == DimOrbitSilverSource@orbiting_body,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinOrbitingBody",
+				"JoinOrbitingBody select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          HazardousKey,",
+				"          OrbitingBodyKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> RemoveOrbitingBodyCol",
+				"RemoveOrbitingBodyCol sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as string,",
+				"          name as string,",
+				"          est_diameter_min as string,",
+				"          est_diameter_max as string,",
+				"          relative_velocity as string,",
+				"          miss_distance as string,",
+				"          absolute_magnitude as string,",
+				"          HazardousKey as string,",
+				"          OrbitingBodyKey as string",
+				"     ),",
+				"     partitionFileNames:['Fact.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          absolute_magnitude,",
+				"          HazardousKey,",
+				"          OrbitingBodyKey",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> FactTableToGold",
+				"DimHazardousSilverSource sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'ankitproject',",
+				"     folderPath: 'gold',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     partitionFileNames:['DimHazard.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> DimHazardousToGold",
+				"DimOrbitSilverSource sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'ankitproject',",
+				"     folderPath: 'gold',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     partitionFileNames:['DimOrbit.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> DimOrbitToGold"
+			]
+		}
+	}
+}

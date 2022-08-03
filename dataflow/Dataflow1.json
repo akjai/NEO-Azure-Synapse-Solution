@@ -1,0 +1,172 @@
+{
+	"name": "Dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "origin"
+				},
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "neo_bronze",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimOrbitingBody",
+						"type": "DatasetReference"
+					},
+					"name": "dimOrbitingBody"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimHazardous",
+						"type": "DatasetReference"
+					},
+					"name": "dimHazardous"
+				},
+				{
+					"dataset": {
+						"referenceName": "neo_silver",
+						"type": "DatasetReference"
+					},
+					"name": "neosilver"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "surrogateKey2"
+				},
+				{
+					"name": "select3"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          orbiting_body as string,",
+				"          sentry_object as boolean,",
+				"          absolute_magnitude as double,",
+				"          hazardous as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> origin",
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          orbiting_body as string,",
+				"          sentry_object as boolean,",
+				"          absolute_magnitude as double,",
+				"          hazardous as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          est_diameter_min as double,",
+				"          est_diameter_max as double,",
+				"          relative_velocity as double,",
+				"          miss_distance as double,",
+				"          orbiting_body as string,",
+				"          sentry_object as boolean,",
+				"          absolute_magnitude as double,",
+				"          hazardous as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source2",
+				"origin select(mapColumn(",
+				"          orbiting_body",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 keyGenerate(output(OrbitingBodyKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey1",
+				"source1 select(mapColumn(",
+				"          hazardous",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 keyGenerate(output(HazardousKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey2",
+				"source2 select(mapColumn(",
+				"          id,",
+				"          name,",
+				"          est_diameter_min,",
+				"          est_diameter_max,",
+				"          relative_velocity,",
+				"          miss_distance,",
+				"          orbiting_body,",
+				"          absolute_magnitude,",
+				"          hazardous",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"surrogateKey1 sink(allowSchemaDrift: true,",
+				"     validateSchema: true,",
+				"     partitionFileNames:['dimOrbitingBody.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     mapColumn(",
+				"          orbiting_body,",
+				"          OrbitingBodyKey",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> dimOrbitingBody",
+				"surrogateKey2 sink(allowSchemaDrift: true,",
+				"     validateSchema: true,",
+				"     partitionFileNames:['dimHazardous.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     partitionBy('hash', 1)) ~> dimHazardous",
+				"select3 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['neo_silver.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     partitionBy('hash', 1)) ~> neosilver"
+			]
+		}
+	}
+}
